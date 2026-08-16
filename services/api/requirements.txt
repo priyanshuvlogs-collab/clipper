@@ -1,0 +1,16 @@
+# Pro Clipper API — Python 3.11+
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+sqlalchemy>=2.0.30
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-multipart>=0.0.9
+requests>=2.32.0
+numpy>=1.26.0
+
+# Media ingestion / processing
+yt-dlp>=2024.8.6
+moviepy>=1.0.3
+
+# Local transcription (primary engine)
+faster-whisper>=1.0.3
