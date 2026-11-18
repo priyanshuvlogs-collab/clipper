@@ -37,6 +37,29 @@ class Settings(BaseSettings):
     # Workers
     worker_count: int = 1
 
+    # --- AI Studio -------------------------------------------------------
+    # xAI (Grok): edit plans, image + video generation. Keys can also be
+    # saved from the Settings page (stored in <data_dir>/ai_keys.json).
+    xai_api_key: str = ""
+    xai_base_url: str = "https://api.x.ai/v1"
+    xai_text_model: str = "grok-4"
+    xai_image_model: str = "grok-imagine-image"
+    xai_video_model: str = "grok-imagine-video"
+    xai_video_resolution: str = "720p"
+
+    # ElevenLabs: voiceover (TTS), sound effects, music.
+    elevenlabs_api_key: str = ""
+    elevenlabs_base_url: str = "https://api.elevenlabs.io"
+    elevenlabs_tts_model: str = "eleven_multilingual_v2"
+    elevenlabs_voice_id: str = "21m00Tcm4TlvDq8ikWAM"   # "Rachel" (premade)
+
+    # Spend guard for xAI. Costs are ESTIMATES from the rates below — set
+    # them to your account's real prices. 0 budget = no cap.
+    ai_budget_usd: float = 0.0
+    xai_image_cost_usd: float = 0.07       # per generated image
+    xai_video_cost_usd_per_sec: float = 0.05
+    xai_text_cost_usd: float = 0.01        # per edit-plan request
+
     @property
     def uploads_dir(self) -> Path:
         return self.data_dir / "uploads"
@@ -54,13 +77,21 @@ class Settings(BaseSettings):
         return self.data_dir / "music"
 
     @property
+    def assets_dir(self) -> Path:
+        return self.data_dir / "assets"
+
+    @property
+    def ai_keys_file(self) -> Path:
+        return self.data_dir / "ai_keys.json"
+
+    @property
     def resolved_database_url(self) -> str:
         if self.database_url:
             return self.database_url
         return f"sqlite:///{self.data_dir / 'proclipper.db'}"
 
     def ensure_dirs(self) -> None:
-        for d in (self.data_dir, self.uploads_dir, self.sources_dir, self.outputs_dir, self.music_dir):
+        for d in (self.data_dir, self.uploads_dir, self.sources_dir, self.outputs_dir, self.music_dir, self.assets_dir):
             d.mkdir(parents=True, exist_ok=True)
 
 

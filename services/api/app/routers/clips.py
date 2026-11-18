@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Clip, Job
 from ..schemas import ClipOut, ClipUpdate, MergeRequest, RenderRequest, ReorderRequest
+from ..services import ai_studio
 from ..services.pipeline import merge_clips_task, render_clip_task
 from ..worker import enqueue
 from .jobs import _clip_out
@@ -121,6 +122,7 @@ def delete_clip(clip_id: str, db: Session = Depends(get_db)):
     for p in [clip.output_path, clip.srt_path]:
         if p:
             Path(p).unlink(missing_ok=True)
+    ai_studio.delete_clip_assets(clip.id)
     db.delete(clip)
     db.commit()
 

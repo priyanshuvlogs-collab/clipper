@@ -11,6 +11,7 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  Sparkles,
   Trash2,
   Type,
   X,
@@ -23,6 +24,7 @@ import { Card } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { AiStudio } from "@/components/ai-studio";
 
 const EMOJIS = ["🔥", "😱", "💰", "🚀", "⚡", "❤️", "💯", "👀", "🎯", "😂"];
 
@@ -54,6 +56,7 @@ export function ClipCard({
   onMove: (dir: -1 | 1) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [start, setStart] = useState(clip.start);
   const [end, setEnd] = useState(clip.end);
   const [title, setTitle] = useState(clip.title);
@@ -192,6 +195,10 @@ export function ClipCard({
               <Pencil className="h-3.5 w-3.5" />
               {editing ? "Close editor" : "Edit"}
             </Button>
+            <Button variant={aiOpen ? "default" : "secondary"} size="sm" onClick={() => setAiOpen((v) => !v)}>
+              <Sparkles className="h-3.5 w-3.5" />
+              AI Studio
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -227,6 +234,8 @@ export function ClipCard({
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
+
+          {aiOpen && <AiStudio clip={clip} onChanged={onChanged} />}
 
           {/* Editor */}
           {editing && (

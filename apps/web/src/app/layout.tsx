@@ -34,6 +34,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/" className="transition hover:text-foreground">
                 Dashboard
               </Link>
+              <Link href="/settings" className="transition hover:text-foreground">
+                AI settings
+              </Link>
               <a
                 href="/api/health"
                 target="_blank"

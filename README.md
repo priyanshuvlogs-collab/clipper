@@ -21,6 +21,7 @@ and renders professional vertical clips with burned-in animated captions.
 | **Rendering** | 1080p H.264/AAC, 9:16 / 16:9 / 1:1, burned-in short-form captions (styled ASS with pop animation), subtle Ken Burns zoom, background-music bed, text/emoji overlays |
 | **Editing** | Timeline view of detected clips, fine start/end trimming (±0.1s nudges), re-ordering, merging multiple clips, per-clip render settings, text overlays with timing/position/size |
 | **UI** | Next.js 15 + Tailwind, dark studio theme, live progress bars for every stage, inline preview player per clip, one-click ZIP download of all clips + subtitles |
+| **AI Studio** | Per-clip AI editing with your own **Grok (xAI)** and **ElevenLabs** keys: one-prompt "Edit with AI" (Grok plans title, hook overlays, B-roll, SFX, music, voiceover), generated B-roll images and video, voiceover in any language, music and sound effects — all composited into the render, with a credits / spend meter |
 | **Persistence** | SQLite job history by default (PostgreSQL via `DATABASE_URL`), background worker queue for long videos |
 
 ## Project structure
@@ -91,6 +92,34 @@ Or from the repo root: `npm install && npm run setup:api && npm run dev`.
 4. Watch the pipeline: download → transcribe → detect → render
 5. Preview, trim, reorder, merge, add overlays — then **Download all**
 
+## AI Studio (Grok + ElevenLabs)
+
+Open **AI settings** in the web app and paste your keys (or set `XAI_API_KEY` /
+`ELEVENLABS_API_KEY` in `services/api/.env`). Then open **AI Studio** on any clip:
+
+- **Edit with AI** — describe the edit ("punchy, add B-roll for every example,
+  energetic music"). Grok reads the clip transcript and returns an edit plan; the
+  layers are generated and the clip is re-rendered. Running it again replaces the
+  previous AI edit; layers you added by hand are kept.
+- **Generate a single layer** — B-roll image or video (Grok Imagine), voiceover,
+  music or a sound effect (ElevenLabs), placed at a time you choose.
+- **Layers** — every layer can be re-timed, re-levelled, switched off or deleted;
+  "Original audio" sets how loud the source track stays under a voiceover.
+
+| Layer | Provider | Rendered as |
+| --- | --- | --- |
+| B-roll image / video | xAI | Full-frame cutaway with a short fade, under the captions |
+| Voiceover / SFX / music | ElevenLabs | Mixed with the original audio at the layer's volume |
+
+**Credits.** Every generation is billed to your own xAI / ElevenLabs accounts. The
+settings page shows your live ElevenLabs credit balance and an *estimated* Grok
+spend (from the `XAI_*_COST_*` rates — set them to your real prices). Set
+`AI_BUDGET_USD` to refuse further xAI generations once the estimate hits a cap.
+
+**Security.** The API has no login. Saved keys live in `<data>/ai_keys.json`
+(mode 0600) and are never returned to the browser, but anyone who can reach the
+API can spend your credits — keep it on localhost or behind your own auth.
+
 ## Transcription engine fallbacks
 
 Local Faster-Whisper is always tried first. Configure any of these keys and the
@@ -120,6 +149,10 @@ Check availability anytime: `GET /api/engines`.
 | `POST` | `/api/jobs/{id}/clips/reorder` | Reorder clips |
 | `POST` | `/api/jobs/{id}/clips/merge` | Merge clips into a new one |
 | `GET` | `/api/clips/{id}/video` · `/download` · `/srt` | Stream / download clip assets |
+| `GET` · `PUT` | `/api/ai/status` · `/api/ai/keys` | Provider status, credits, usage / save API keys |
+| `POST` | `/api/clips/{id}/ai-edit` | Grok plans + applies an edit (layers, overlays, title), then renders |
+| `GET` · `POST` | `/api/clips/{id}/assets` | List / generate AI layers (`image`, `video`, `voiceover`, `sfx`, `music`) |
+| `PATCH` · `DELETE` | `/api/assets/{id}` | Re-time, re-level, toggle or delete a layer |
 | `GET` | `/api/engines` · `/api/health` | Engine discovery / health |
 
 Interactive docs: **http://localhost:8000/docs**
