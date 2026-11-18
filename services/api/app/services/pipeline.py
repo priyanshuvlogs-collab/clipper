@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..config import settings
 from ..database import SessionLocal
-from ..models import Clip, Job
+from ..models import Asset, Clip, Job
 from . import clip_detection, ingest, media, rendering, subtitles, transcription
 
 log = logging.getLogger("proclipper.pipeline")
@@ -161,6 +161,11 @@ def render_clip_task(clip_id: str) -> None:
         overlays = list(clip.overlays or [])
         start, end = clip.start, clip.end
         job_id = clip.job_id
+        layers = [
+            {"kind": a.kind, "path": a.path, "start": a.start, "end": a.end, "volume": a.volume}
+            for a in db.query(Asset).filter(Asset.clip_id == clip_id).order_by(Asset.created_at)
+            if a.enabled and a.status == "ready" and a.kind != "plan" and a.path and Path(a.path).exists()
+        ]
 
     def prog(p: float) -> None:
         with SessionLocal() as db:
@@ -209,6 +214,8 @@ def render_clip_task(clip_id: str) -> None:
             music_volume=float(rs.get("music_volume", 0.12)),
             overlays=overlays,
             on_progress=prog,
+            layers=layers,
+            original_volume=float(rs.get("original_volume", 1.0)),
         )
 
         with SessionLocal() as db:

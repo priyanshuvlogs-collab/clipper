@@ -101,3 +101,50 @@ class Clip(Base):
     srt_path: Mapped[str] = mapped_column(Text, default="")
 
     job: Mapped[Job] = relationship(back_populates="clips")
+    assets: Mapped[list["Asset"]] = relationship(
+        back_populates="clip", cascade="all, delete-orphan", order_by="Asset.created_at"
+    )
+
+
+class Asset(Base):
+    """An AI-generated media layer attached to a clip.
+
+    kind: image | video (B-roll, xAI) · voiceover | sfx | music (ElevenLabs)
+          · plan (an AI Director run; never rendered, `meta` holds the plan)
+    `start` / `end` are seconds relative to the clip's own start.
+    """
+
+    __tablename__ = "assets"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    clip_id: Mapped[str] = mapped_column(ForeignKey("clips.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+
+    kind: Mapped[str] = mapped_column(String(16))
+    provider: Mapped[str] = mapped_column(String(16))          # xai | elevenlabs
+    prompt: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | ready | failed
+    error: Mapped[str] = mapped_column(Text, default="")
+    path: Mapped[str] = mapped_column(Text, default="")
+    duration: Mapped[float] = mapped_column(Float, default=0.0)
+
+    start: Mapped[float] = mapped_column(Float, default=0.0)
+    end: Mapped[float] = mapped_column(Float, default=0.0)
+    volume: Mapped[float] = mapped_column(Float, default=1.0)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    meta: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    clip: Mapped[Clip] = relationship(back_populates="assets")
+
+
+class AiUsage(Base):
+    """One billable AI call, for the spend / credits meter."""
+
+    __tablename__ = "ai_usage"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+    provider: Mapped[str] = mapped_column(String(16))
+    kind: Mapped[str] = mapped_column(String(16))
+    units: Mapped[float] = mapped_column(Float, default=0.0)   # images, seconds, characters…
+    est_cost_usd: Mapped[float] = mapped_column(Float, default=0.0)

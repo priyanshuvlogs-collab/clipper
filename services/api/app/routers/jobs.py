@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -10,6 +11,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..database import get_db
 from ..models import Clip, Job
 from ..schemas import CreateUrlJob, JobDetail, JobParams, JobSummary
@@ -149,6 +151,7 @@ def delete_job(job_id: str, db: Session = Depends(get_db)):
         for p in [clip.output_path, clip.srt_path]:
             if p:
                 Path(p).unlink(missing_ok=True)
+        shutil.rmtree(settings.assets_dir / clip.id, ignore_errors=True)
     db.delete(job)
     db.commit()
 
