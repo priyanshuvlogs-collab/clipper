@@ -127,6 +127,11 @@ spend (from the `XAI_*_COST_*` rates — set them to your real prices). Set
 (mode 0600) and are never returned to the browser, but anyone who can reach the
 API can spend your credits — keep it on localhost or behind your own auth.
 
+## Deploying to a server
+
+A Docker Compose stack with automatic HTTPS and a password in front of the app is
+included — see [deploy/README.md](deploy/README.md).
+
 ## Transcription engine fallbacks
 
 Local Faster-Whisper is always tried first. Configure any of these keys and the

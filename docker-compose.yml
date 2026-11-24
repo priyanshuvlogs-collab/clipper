@@ -1,0 +1,35 @@
+# Production stack: Caddy (HTTPS + login) -> web (Next.js) and api (FastAPI).
+# Setup guide: deploy/README.md
+services:
+  api:
+    build: ./services/api
+    restart: unless-stopped
+    env_file: deploy/.env
+    volumes:
+      - data:/data
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on: [api]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [web, api]
+    env_file: deploy/.env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:
