@@ -2,7 +2,7 @@
 
 - B-roll images / video  -> xAI (Grok Imagine)
 - Voiceover / SFX / music -> ElevenLabs
-- AI Director             -> Grok reads the clip transcript, returns an edit
+- AI Director             -> Claude (or Grok) reads the clip transcript, returns an edit
                              plan (title, text overlays, B-roll, SFX, music,
                              optional voiceover) which is applied and rendered.
 
@@ -24,7 +24,7 @@ from sqlalchemy import func, select
 from ..config import settings
 from ..database import SessionLocal
 from ..models import AiUsage, Asset, Clip, Job
-from . import elevenlabs, media, xai
+from . import ai_keys, claude, elevenlabs, media, xai
 from .ai_keys import AiError
 
 log = logging.getLogger("proclipper.ai")
@@ -65,6 +65,17 @@ def ensure_budget(kind: str, seconds: float = 0.0) -> None:
         )
 
 
+def planner() -> str:
+    """Who plans AI edits: Claude when an Anthropic key is set, else Grok, else ''."""
+    if ai_keys.get_key("anthropic"):
+        return "anthropic"
+    return "xai" if ai_keys.get_key("xai") else ""
+
+
+def record_usage(provider: str, kind: str, units: float, cost: float = 0.0) -> None:
+    _record(provider, kind, units, cost)
+
+
 def _record(provider: str, kind: str, units: float, cost: float = 0.0) -> None:
     with SessionLocal() as db:
         db.add(AiUsage(provider=provider, kind=kind, units=units, est_cost_usd=cost))
@@ -84,6 +95,7 @@ def usage_summary() -> dict[str, Any]:
     return {
         "items": items,
         "xai_est_usd": round(sum(i["est_cost_usd"] for i in items if i["provider"] == "xai"), 4),
+        "anthropic_est_usd": round(sum(i["est_cost_usd"] for i in items if i["provider"] == "anthropic"), 4),
         "budget_usd": settings.ai_budget_usd,
     }
 
@@ -306,9 +318,13 @@ def run_director(plan_id: str, opts: dict[str, Any]) -> None:
                 f"Transcript:\n{_clip_context(clip, job)[:6000]}"
             )
 
-        ensure_budget("plan")
-        raw = xai.chat_json(DIRECTOR_SYSTEM, user_msg)
-        _record("xai", "plan", 1.0, estimate_cost("plan"))
+        if planner() == "anthropic":
+            raw, cost = claude.plan_json(DIRECTOR_SYSTEM, user_msg)
+            _record("anthropic", "plan", 1.0, cost)
+        else:
+            ensure_budget("plan")
+            raw = xai.chat_json(DIRECTOR_SYSTEM, user_msg)
+            _record("xai", "plan", 1.0, estimate_cost("plan"))
         plan = sanitize_plan(raw, clip_len, opts)
 
         # Apply the plan: replace whatever a previous Director run produced.

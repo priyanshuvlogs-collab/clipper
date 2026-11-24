@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import init_db
-from .routers import ai, clips, jobs, system
+from .routers import ai, assistant, clips, jobs, system
 from .worker import start_workers
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -43,3 +43,4 @@ app.include_router(system.router)
 app.include_router(jobs.router)
 app.include_router(clips.router)
 app.include_router(ai.router)
+app.include_router(assistant.router)

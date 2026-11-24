@@ -95,6 +95,7 @@ export function AiStudio({ clip, onChanged }: { clip: ClipData; onChanged: () =>
 
   const elReady = Boolean(status?.elevenlabs.configured);
   const xaiReady = Boolean(status?.xai.configured);
+  const canPlan = Boolean(status?.planner);
 
   useEffect(() => {
     if ((kind === "voiceover" || opts.voiceover) && elReady && voices.length === 0) {
@@ -163,9 +164,9 @@ export function AiStudio({ clip, onChanged }: { clip: ClipData; onChanged: () =>
       {status && (!xaiReady || !elReady) && (
         <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
           {!xaiReady && !elReady
-            ? "Add your Grok (xAI) and ElevenLabs API keys to use AI Studio."
+            ? "Add your Grok (xAI) and ElevenLabs API keys to generate B-roll, voiceover, music and sound effects."
             : !xaiReady
-              ? "Add a Grok (xAI) API key for AI edits, images and video."
+              ? "Add a Grok (xAI) API key to generate B-roll images and video."
               : "Add an ElevenLabs API key for voiceover, music and sound effects."}{" "}
           <Link href="/settings" className="font-semibold underline">
             Open AI settings
@@ -207,14 +208,16 @@ export function AiStudio({ clip, onChanged }: { clip: ClipData; onChanged: () =>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
-            disabled={!xaiReady || busy || directing}
+            disabled={!canPlan || busy || directing}
             onClick={() => run(() => api.aiEdit(clip.id, { ...opts, voice_id: voiceId || undefined }))}
           >
             {directing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
             {directing ? (plan?.meta.stage === "generating" ? "Generating layers…" : "Planning the edit…") : "Edit with AI"}
           </Button>
           <span className="text-[11px] text-muted">
-            Grok plans the edit; video B-roll is the slowest and most expensive option.
+            {status?.planner === "anthropic" ? "Claude" : "Grok"} plans the edit; video B-roll is the slowest and most
+            expensive option.
+            {!xaiReady && " B-roll is skipped until a Grok key is added."}
             {!elReady && " Audio options are skipped until an ElevenLabs key is added."}
           </span>
         </div>

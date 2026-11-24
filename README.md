@@ -22,6 +22,7 @@ and renders professional vertical clips with burned-in animated captions.
 | **Editing** | Timeline view of detected clips, fine start/end trimming (±0.1s nudges), re-ordering, merging multiple clips, per-clip render settings, text overlays with timing/position/size |
 | **UI** | Next.js 15 + Tailwind, dark studio theme, live progress bars for every stage, inline preview player per clip, one-click ZIP download of all clips + subtitles |
 | **AI Studio** | Per-clip AI editing with your own **Grok (xAI)** and **ElevenLabs** keys: one-prompt "Edit with AI" (Grok plans title, hook overlays, B-roll, SFX, music, voiceover), generated B-roll images and video, voiceover in any language, music and sound effects — all composited into the render, with a credits / spend meter |
+| **Help chat** | A built-in support assistant (Claude, via your Anthropic key) on every page: knows the app, sees which keys are set and the state of the video you have open, answers in your language |
 | **Persistence** | SQLite job history by default (PostgreSQL via `DATABASE_URL`), background worker queue for long videos |
 
 ## Project structure
@@ -92,10 +93,16 @@ Or from the repo root: `npm install && npm run setup:api && npm run dev`.
 4. Watch the pipeline: download → transcribe → detect → render
 5. Preview, trim, reorder, merge, add overlays — then **Download all**
 
-## AI Studio (Grok + ElevenLabs)
+## AI Studio and Help chat (Claude + Grok + ElevenLabs)
 
-Open **AI settings** in the web app and paste your keys (or set `XAI_API_KEY` /
-`ELEVENLABS_API_KEY` in `services/api/.env`). Then open **AI Studio** on any clip:
+| Key | Unlocks |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | The **Help** chat button on every page, and planning of "Edit with AI" (preferred over Grok when set) |
+| `XAI_API_KEY` | B-roll images and video (and edit planning if there is no Anthropic key) |
+| `ELEVENLABS_API_KEY` | Voiceover, music, sound effects |
+
+None are needed for basic clipping. Open **AI settings** in the web app and paste your
+keys (or set them in `services/api/.env`). Never commit a key to the repository. Then open **AI Studio** on any clip:
 
 - **Edit with AI** — describe the edit ("punchy, add B-roll for every example,
   energetic music"). Grok reads the clip transcript and returns an edit plan; the
@@ -153,6 +160,7 @@ Check availability anytime: `GET /api/engines`.
 | `POST` | `/api/clips/{id}/ai-edit` | Grok plans + applies an edit (layers, overlays, title), then renders |
 | `GET` · `POST` | `/api/clips/{id}/assets` | List / generate AI layers (`image`, `video`, `voiceover`, `sfx`, `music`) |
 | `PATCH` · `DELETE` | `/api/assets/{id}` | Re-time, re-level, toggle or delete a layer |
+| `POST` | `/api/assistant/chat` | Help assistant; streams newline-delimited JSON (`{"text"}` … `{"done"}`) |
 | `GET` | `/api/engines` · `/api/health` | Engine discovery / health |
 
 Interactive docs: **http://localhost:8000/docs**

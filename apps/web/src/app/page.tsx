@@ -1,26 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Captions, Scissors, Wand2 } from "lucide-react";
+import { Sparkles, Upload, Wand2 } from "lucide-react";
 import { api, type JobSummary } from "@/lib/api";
 import { CreateJob } from "@/components/create-job";
 import { JobList } from "@/components/job-list";
+import { SetupGuide } from "@/components/setup-guide";
 
-const FEATURES = [
+const STEPS = [
   {
-    icon: Captions,
-    title: "Multilingual transcription",
-    text: "Faster-Whisper locally with Groq / Deepgram / AssemblyAI fallbacks. Hindi, English and 90+ languages with word-level timestamps.",
+    icon: Upload,
+    title: "1. Add a video",
+    text: "Upload a file or paste a YouTube link. Long podcasts, interviews and streams work best.",
   },
   {
     icon: Wand2,
-    title: "Smart moment detection",
-    text: "Hooks, speech energy, keyword salience and silence analysis rank the highest-retention moments automatically.",
+    title: "2. We find the best moments",
+    text: "The video is transcribed (Hindi, English and 90+ languages) and the strongest moments are cut into captioned clips.",
   },
   {
-    icon: Scissors,
-    title: "Studio-grade rendering",
-    text: "1080p vertical clips with burned-in animated captions, subtle Ken Burns zoom, music beds and text overlays.",
+    icon: Sparkles,
+    title: "3. Polish and download",
+    text: "Trim, add text, or open AI Studio for B-roll, music and voiceover. Then download and post.",
   },
 ];
 
@@ -44,15 +45,15 @@ export default function HomePage() {
           Turn long videos into viral clips
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
-          AI transcription, smart highlight detection and professional 9:16 rendering — Shorts,
-          Reels and TikToks in one click.
+          Add a video and get ready-to-post Shorts, Reels and TikToks with captions — no editing
+          skills needed.
         </p>
       </section>
 
       <CreateJob onCreated={refresh} />
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {FEATURES.map((f) => (
+      <section className="grid gap-4 md:grid-cols-3" aria-label="How it works">
+        {STEPS.map((f) => (
           <div key={f.title} className="rounded-xl border border-border bg-surface/60 p-5">
             <f.icon className="h-5 w-5 text-accent" />
             <h3 className="mt-3 text-sm font-bold">{f.title}</h3>
@@ -61,8 +62,10 @@ export default function HomePage() {
         ))}
       </section>
 
+      <SetupGuide />
+
       <section className="space-y-3">
-        <h2 className="text-lg font-bold tracking-tight">Recent jobs</h2>
+        <h2 className="text-lg font-bold tracking-tight">Your videos</h2>
         <JobList jobs={jobs} onDeleted={refresh} />
       </section>
     </div>

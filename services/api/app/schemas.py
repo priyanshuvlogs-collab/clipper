@@ -170,3 +170,15 @@ class AiEditRequest(BaseModel):
 class AiKeys(BaseModel):
     xai_api_key: Optional[str] = None           # "" clears the saved key
     elevenlabs_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=6000)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=40)
+    page: str = Field(default="", max_length=200)      # current path, for context
+    job_id: Optional[str] = Field(default=None, max_length=32)

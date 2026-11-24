@@ -14,7 +14,8 @@ import threading
 from ..config import settings
 
 _lock = threading.Lock()
-PROVIDERS = ("xai", "elevenlabs")
+PROVIDERS = ("xai", "elevenlabs", "anthropic")
+NAMES = {"xai": "xAI (Grok)", "elevenlabs": "ElevenLabs", "anthropic": "Anthropic (Claude)"}
 
 
 class AiError(RuntimeError):
@@ -37,8 +38,7 @@ def get_key(provider: str) -> str:
 def require_key(provider: str) -> str:
     key = get_key(provider)
     if not key:
-        name = "xAI (Grok)" if provider == "xai" else "ElevenLabs"
-        raise AiError(f"No {name} API key configured — add one on the Settings page.")
+        raise AiError(f"No {NAMES.get(provider, provider)} API key configured — add one on the Settings page.")
     return key
 
 

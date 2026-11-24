@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     xai_video_model: str = "grok-imagine-video"
     xai_video_resolution: str = "720p"
 
+    # Anthropic (Claude): the in-app help assistant, and edit planning when set
+    # (Claude is preferred over Grok for planning).
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-opus-5-5"
+
     # ElevenLabs: voiceover (TTS), sound effects, music.
     elevenlabs_api_key: str = ""
     elevenlabs_base_url: str = "https://api.elevenlabs.io"

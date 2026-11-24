@@ -76,6 +76,13 @@ def ai_status():
             "video_model": settings.xai_video_model,
         },
         "elevenlabs": el,
+        "anthropic": {
+            "configured": bool(ai_keys.get_key("anthropic")),
+            "key_hint": ai_keys.hint("anthropic"),
+            "key_source": ai_keys.source("anthropic"),
+            "model": settings.anthropic_model,
+        },
+        "planner": ai_studio.planner(),
         "usage": ai_studio.usage_summary(),
         "rates": {
             "image_usd": settings.xai_image_cost_usd,
@@ -87,7 +94,7 @@ def ai_status():
 
 @router.put("/ai/keys")
 def save_keys(body: AiKeys):
-    ai_keys.save_keys({"xai": body.xai_api_key, "elevenlabs": body.elevenlabs_api_key})
+    ai_keys.save_keys({"xai": body.xai_api_key, "elevenlabs": body.elevenlabs_api_key, "anthropic": body.anthropic_api_key})
     return {"ok": True}
 
 
@@ -185,18 +192,24 @@ def ai_edit(clip_id: str, body: AiEditRequest, db: Session = Depends(get_db)):
     if any(a.kind == "plan" and a.status == "pending" for a in clip.assets):
         raise HTTPException(409, "An AI edit is already running for this clip")
     needs_audio = body.voiceover or body.music or body.sfx
+    who = ai_studio.planner()
+    if not who:
+        raise HTTPException(400, "Add an Anthropic (Claude) or Grok API key on the AI settings page to use AI edits.")
     try:
-        ai_keys.require_key("xai")
-        ai_studio.ensure_budget("plan")
+        if who == "xai":
+            ai_studio.ensure_budget("plan")
     except AiError as exc:
         raise HTTPException(400, str(exc)) from exc
     opts = body.model_dump()
+    if not ai_keys.get_key("xai"):
+        # No Grok key: Claude can still plan titles, overlays and audio, but not B-roll.
+        opts.update(broll_images=False, broll_video=False)
     if needs_audio and not ai_keys.get_key("elevenlabs"):
         # Degrade gracefully: plan visuals only rather than fail the whole edit.
         opts.update(voiceover=False, music=False, sfx=False)
 
     plan = Asset(
-        clip_id=clip_id, kind="plan", provider="xai",
+        clip_id=clip_id, kind="plan", provider=who,
         prompt=body.instruction.strip() or "Make it as engaging as possible.",
         meta={"stage": "planning"},
     )

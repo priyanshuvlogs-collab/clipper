@@ -121,7 +121,7 @@ class Asset(Base):
     created_at: Mapped[datetime] = mapped_column(default=_now)
 
     kind: Mapped[str] = mapped_column(String(16))
-    provider: Mapped[str] = mapped_column(String(16))          # xai | elevenlabs
+    provider: Mapped[str] = mapped_column(String(16))          # xai | elevenlabs | anthropic
     prompt: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | ready | failed
     error: Mapped[str] = mapped_column(Text, default="")

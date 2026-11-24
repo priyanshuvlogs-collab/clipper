@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 
 const KIND_LABELS: Record<string, string> = {
   plan: "AI edit plans",
+  help: "Help chat replies",
   image: "B-roll images",
   video: "B-roll video (seconds)",
   voiceover: "Voiceover (characters)",
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [xaiKey, setXaiKey] = useState("");
   const [elKey, setElKey] = useState("");
+  const [claudeKey, setClaudeKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -31,7 +33,10 @@ export default function SettingsPage() {
     load();
   }, [load]);
 
-  const save = async (keys: { xai_api_key?: string; elevenlabs_api_key?: string }, note: string) => {
+  const save = async (
+    keys: { xai_api_key?: string; elevenlabs_api_key?: string; anthropic_api_key?: string },
+    note: string,
+  ) => {
     setSaving(true);
     setError("");
     setMessage("");
@@ -39,6 +44,7 @@ export default function SettingsPage() {
       await api.saveAiKeys(keys);
       setXaiKey("");
       setElKey("");
+      setClaudeKey("");
       await load();
       setMessage(note);
     } catch (e) {
@@ -56,8 +62,8 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">AI settings</h1>
         <p className="mt-1 text-sm text-muted">
-          Pro Clipper uses your own accounts: Grok (xAI) plans edits and generates B-roll images and video;
-          ElevenLabs generates voiceover, music and sound effects. Every generation is billed to those accounts.
+          Making clips needs no keys. Add a key only for the extras you want — each one is billed to your own
+          account with that provider.
         </p>
       </div>
 
@@ -79,10 +85,35 @@ export default function SettingsPage() {
         <CardContent className="space-y-5">
           {(
             [
-              ["Grok (xAI) API key", "xai", xaiKey, setXaiKey, "xai-…", "xai_api_key"],
-              ["ElevenLabs API key", "elevenlabs", elKey, setElKey, "sk_…", "elevenlabs_api_key"],
+              [
+                "Anthropic (Claude) API key",
+                "anthropic",
+                claudeKey,
+                setClaudeKey,
+                "sk-ant-…",
+                "anthropic_api_key",
+                "Powers the Help chat and plans AI edits. Get it at console.anthropic.com → API keys.",
+              ],
+              [
+                "Grok (xAI) API key",
+                "xai",
+                xaiKey,
+                setXaiKey,
+                "xai-…",
+                "xai_api_key",
+                "Generates B-roll images and video. Get it at console.x.ai → API keys.",
+              ],
+              [
+                "ElevenLabs API key",
+                "elevenlabs",
+                elKey,
+                setElKey,
+                "sk_…",
+                "elevenlabs_api_key",
+                "Generates voiceover, music and sound effects. Get it at elevenlabs.io → Developers → API keys.",
+              ],
             ] as const
-          ).map(([label, provider, value, setter, placeholder, field]) => {
+          ).map(([label, provider, value, setter, placeholder, field, help]) => {
             const info = status?.[provider];
             return (
               <div key={provider}>
@@ -103,6 +134,7 @@ export default function SettingsPage() {
                     autoComplete="off"
                     value={value}
                     onChange={(e) => setter(e.target.value)}
+                    aria-label={label}
                     placeholder={info?.configured ? "Paste a new key to replace it" : placeholder}
                   />
                   <Button disabled={saving || !value.trim()} onClick={() => save({ [field]: value }, `${label} saved.`)}>
@@ -115,12 +147,13 @@ export default function SettingsPage() {
                     </Button>
                   )}
                 </div>
+                <p className="mt-1.5 text-xs text-muted">{help}</p>
               </div>
             );
           })}
           <p className="text-xs text-muted">
             Keys are stored on the API server only (in its data folder) and are never sent back to the browser. You can
-            also set <code>XAI_API_KEY</code> and <code>ELEVENLABS_API_KEY</code> in <code>services/api/.env</code>.
+            also set <code>ANTHROPIC_API_KEY</code>, <code>XAI_API_KEY</code> and <code>ELEVENLABS_API_KEY</code> in <code>services/api/.env</code>.
           </p>
           {status?.elevenlabs.error && <p className="text-xs text-danger">{status.elevenlabs.error}</p>}
         </CardContent>
@@ -161,6 +194,11 @@ export default function SettingsPage() {
             )}
           </div>
 
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-semibold">Claude spend (estimated)</span>
+            <span className="text-muted">~${(usage?.anthropic_est_usd ?? 0).toFixed(2)} · from token counts</span>
+          </div>
+
           {usage && usage.items.length > 0 && (
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-muted">
@@ -176,11 +214,13 @@ export default function SettingsPage() {
                 {usage.items.map((i) => (
                   <tr key={`${i.provider}-${i.kind}`} className="border-t border-border">
                     <td className="py-1.5">{KIND_LABELS[i.kind] ?? i.kind}</td>
-                    <td className="py-1.5 text-muted">{i.provider === "xai" ? "Grok" : "ElevenLabs"}</td>
+                    <td className="py-1.5 text-muted">
+                      {i.provider === "xai" ? "Grok" : i.provider === "anthropic" ? "Claude" : "ElevenLabs"}
+                    </td>
                     <td className="py-1.5 text-right tabular-nums">{i.count}</td>
                     <td className="py-1.5 text-right tabular-nums">{i.units.toLocaleString()}</td>
                     <td className="py-1.5 text-right tabular-nums">
-                      {i.provider === "xai" ? `$${i.est_cost_usd.toFixed(2)}` : "—"}
+                      {i.provider === "elevenlabs" ? "—" : `$${i.est_cost_usd.toFixed(2)}`}
                     </td>
                   </tr>
                 ))}
@@ -190,7 +230,7 @@ export default function SettingsPage() {
 
           {status && (
             <p className="text-xs text-muted">
-              Models: {status.xai.text_model} · {status.xai.image_model} · {status.xai.video_model} ·{" "}
+              Models: {status.anthropic.model} · {status.xai.text_model} · {status.xai.image_model} · {status.xai.video_model} ·{" "}
               {status.elevenlabs.tts_model}
             </p>
           )}

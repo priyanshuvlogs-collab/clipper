@@ -170,12 +170,60 @@ export interface AiStatus {
     credits: { used: number; limit: number; remaining: number; tier: string } | null;
     error: string;
   };
+  anthropic: { configured: boolean; key_hint: string; key_source: "" | "saved" | "env"; model: string };
+  planner: "" | "anthropic" | "xai";
   usage: {
+    anthropic_est_usd: number;
     items: { provider: string; kind: string; count: number; units: number; est_cost_usd: number }[];
     xai_est_usd: number;
     budget_usd: number;
   };
   rates: { image_usd: number; video_usd_per_sec: number; plan_usd: number };
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Stream a help-assistant reply; `onText` receives each new piece of text. */
+export async function streamHelpChat(
+  body: { messages: ChatMessage[]; page: string; job_id?: string },
+  onText: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch("/api/assistant/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    let detail = res.statusText || "The help assistant is unavailable";
+    try {
+      const data = await res.json();
+      if (typeof data.detail === "string") detail = data.detail;
+    } catch {
+      /* keep statusText */
+    }
+    throw new Error(detail);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const event = JSON.parse(line) as { text?: string; error?: string; done?: boolean };
+      if (event.error) throw new Error(event.error);
+      if (event.text) onText(event.text);
+    }
+    if (done) break;
+  }
 }
 
 const json = (method: string, body: unknown): RequestInit => ({
@@ -249,7 +297,7 @@ export const api = {
     }).then((r) => handle<ClipData>(r)),
 
   aiStatus: () => fetch("/api/ai/status").then((r) => handle<AiStatus>(r)),
-  saveAiKeys: (keys: { xai_api_key?: string; elevenlabs_api_key?: string }) =>
+  saveAiKeys: (keys: { xai_api_key?: string; elevenlabs_api_key?: string; anthropic_api_key?: string }) =>
     fetch("/api/ai/keys", json("PUT", keys)).then((r) => handle<{ ok: boolean }>(r)),
   voices: () => fetch("/api/ai/voices").then((r) => handle<Voice[]>(r)),
 
