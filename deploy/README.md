@@ -3,6 +3,19 @@
 One `docker compose` stack: **Caddy** (HTTPS + a password in front of everything) →
 **web** (Next.js) and **api** (FastAPI + FFmpeg + Whisper).
 
+## Quick install (one command)
+
+After pointing the domain at the VPS (step 1 below), log in to the VPS as root and run:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/priyanshuvlogs-collab/clipper/main/deploy/install.sh)
+```
+
+It installs Docker, opens the firewall, downloads the app, asks you to choose the site
+password, and starts everything. Set `DOMAIN=yourdomain.com` in front of `bash` for a
+different domain. Running it again updates the app. The manual steps below do the same
+thing by hand.
+
 ## What you need
 
 - A VPS running Ubuntu 22.04 or 24.04 with **at least 4 GB RAM and 2 vCPU**, and 40 GB+
