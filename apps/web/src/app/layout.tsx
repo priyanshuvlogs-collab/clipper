@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Clapperboard } from "lucide-react";
 import "./globals.css";
+import { HelpChat } from "@/components/help-chat";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -34,6 +35,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/" className="transition hover:text-foreground">
                 Dashboard
               </Link>
+              <Link href="/settings" className="transition hover:text-foreground">
+                AI settings
+              </Link>
               <a
                 href="/api/health"
                 target="_blank"
@@ -45,7 +49,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-8 pb-24">{children}</main>
+        <HelpChat />
       </body>
     </html>
   );

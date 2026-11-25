@@ -1,0 +1,24 @@
+# HTTPS certificates are obtained and renewed automatically for {$DOMAIN}.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# The app has no login of its own: everything sits behind this password.
+	basic_auth {
+		{$APP_USER} {$APP_PASSWORD_HASH}
+	}
+
+	# API straight to FastAPI (large uploads, streamed chat replies).
+	handle /api/* {
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

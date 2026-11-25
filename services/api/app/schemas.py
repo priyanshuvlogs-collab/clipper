@@ -116,3 +116,69 @@ class EngineInfo(BaseModel):
     kind: Literal["local", "remote"]
     available: bool
     detail: str = ""
+
+
+# --- AI Studio ---------------------------------------------------------------
+
+AssetKind = Literal["image", "video", "voiceover", "sfx", "music"]
+
+
+class AssetCreate(BaseModel):
+    kind: AssetKind
+    prompt: str = Field(min_length=1, max_length=5000)   # for voiceover: the script
+    start: float = Field(default=0.0, ge=0.0)
+    end: Optional[float] = None          # default: sensible length per kind
+    volume: Optional[float] = Field(default=None, ge=0.0, le=2.0)
+    voice_id: Optional[str] = None       # voiceover only
+
+
+class AssetUpdate(BaseModel):
+    start: Optional[float] = Field(default=None, ge=0.0)
+    end: Optional[float] = Field(default=None, ge=0.0)
+    volume: Optional[float] = Field(default=None, ge=0.0, le=2.0)
+    enabled: Optional[bool] = None
+
+
+class AssetOut(BaseModel):
+    id: str
+    clip_id: str
+    kind: str
+    provider: str
+    prompt: str
+    status: str
+    error: str
+    duration: float
+    start: float
+    end: float
+    volume: float
+    enabled: bool
+    meta: dict[str, Any]
+    file_url: Optional[str] = None
+
+
+class AiEditRequest(BaseModel):
+    instruction: str = Field(default="", max_length=2000)
+    broll_images: bool = True
+    broll_video: bool = False            # slower + pricier, opt-in
+    voiceover: bool = False
+    music: bool = True
+    sfx: bool = True
+    auto_render: bool = True
+    voice_id: Optional[str] = None
+
+
+class AiKeys(BaseModel):
+    xai_api_key: Optional[str] = None           # "" clears the saved key
+    elevenlabs_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=6000)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=40)
+    page: str = Field(default="", max_length=200)      # current path, for context
+    job_id: Optional[str] = Field(default=None, max_length=32)

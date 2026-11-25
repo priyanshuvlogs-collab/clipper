@@ -106,6 +106,132 @@ export interface EngineInfo {
   detail: string;
 }
 
+export type AssetKind = "image" | "video" | "voiceover" | "sfx" | "music";
+
+export interface PlanData {
+  title?: string;
+  notes?: string;
+  overlays?: { text: string; start: number; end: number }[];
+  broll?: { type: string; start: number; end: number; prompt: string }[];
+  sfx?: { at: number; prompt: string }[];
+  music_prompt?: string | null;
+  voiceover_script?: string | null;
+}
+
+export interface AssetData {
+  id: string;
+  clip_id: string;
+  kind: AssetKind | "plan";
+  provider: "xai" | "elevenlabs";
+  prompt: string;
+  status: "pending" | "ready" | "failed";
+  error: string;
+  duration: number;
+  start: number;
+  end: number;
+  volume: number;
+  enabled: boolean;
+  meta: { stage?: string; generated?: number; failed?: number; plan?: PlanData; voice_id?: string };
+  file_url: string | null;
+}
+
+export interface AiEditOptions {
+  instruction: string;
+  broll_images: boolean;
+  broll_video: boolean;
+  voiceover: boolean;
+  music: boolean;
+  sfx: boolean;
+  auto_render: boolean;
+  voice_id?: string;
+}
+
+export interface Voice {
+  voice_id: string;
+  name: string;
+  description: string;
+  preview_url: string;
+}
+
+export interface AiStatus {
+  xai: {
+    configured: boolean;
+    key_hint: string;
+    key_source: "" | "saved" | "env";
+    text_model: string;
+    image_model: string;
+    video_model: string;
+  };
+  elevenlabs: {
+    configured: boolean;
+    key_hint: string;
+    key_source: "" | "saved" | "env";
+    tts_model: string;
+    credits: { used: number; limit: number; remaining: number; tier: string } | null;
+    error: string;
+  };
+  anthropic: { configured: boolean; key_hint: string; key_source: "" | "saved" | "env"; model: string };
+  planner: "" | "anthropic" | "xai";
+  usage: {
+    anthropic_est_usd: number;
+    items: { provider: string; kind: string; count: number; units: number; est_cost_usd: number }[];
+    xai_est_usd: number;
+    budget_usd: number;
+  };
+  rates: { image_usd: number; video_usd_per_sec: number; plan_usd: number };
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Stream a help-assistant reply; `onText` receives each new piece of text. */
+export async function streamHelpChat(
+  body: { messages: ChatMessage[]; page: string; job_id?: string },
+  onText: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch("/api/assistant/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    let detail = res.statusText || "The help assistant is unavailable";
+    try {
+      const data = await res.json();
+      if (typeof data.detail === "string") detail = data.detail;
+    } catch {
+      /* keep statusText */
+    }
+    throw new Error(detail);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const event = JSON.parse(line) as { text?: string; error?: string; done?: boolean };
+      if (event.error) throw new Error(event.error);
+      if (event.text) onText(event.text);
+    }
+    if (done) break;
+  }
+}
+
+const json = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail = res.statusText;
@@ -169,6 +295,22 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clip_ids: clipIds, title }),
     }).then((r) => handle<ClipData>(r)),
+
+  aiStatus: () => fetch("/api/ai/status").then((r) => handle<AiStatus>(r)),
+  saveAiKeys: (keys: { xai_api_key?: string; elevenlabs_api_key?: string; anthropic_api_key?: string }) =>
+    fetch("/api/ai/keys", json("PUT", keys)).then((r) => handle<{ ok: boolean }>(r)),
+  voices: () => fetch("/api/ai/voices").then((r) => handle<Voice[]>(r)),
+
+  listAssets: (clipId: string) => fetch(`/api/clips/${clipId}/assets`).then((r) => handle<AssetData[]>(r)),
+  createAsset: (
+    clipId: string,
+    body: { kind: AssetKind; prompt: string; start: number; end?: number; voice_id?: string },
+  ) => fetch(`/api/clips/${clipId}/assets`, json("POST", body)).then((r) => handle<AssetData>(r)),
+  updateAsset: (id: string, body: Partial<Pick<AssetData, "start" | "end" | "volume" | "enabled">>) =>
+    fetch(`/api/assets/${id}`, json("PATCH", body)).then((r) => handle<AssetData>(r)),
+  deleteAsset: (id: string) => fetch(`/api/assets/${id}`, { method: "DELETE" }).then((r) => handle<void>(r)),
+  aiEdit: (clipId: string, opts: AiEditOptions) =>
+    fetch(`/api/clips/${clipId}/ai-edit`, json("POST", opts)).then((r) => handle<AssetData>(r)),
 
   engines: () => fetch("/api/engines").then((r) => handle<EngineInfo[]>(r)),
 };

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CloudUpload, Link2, Loader2, Sparkles } from "lucide-react";
+import { ChevronDown, CloudUpload, Link2, Loader2, Sparkles } from "lucide-react";
 import { api, DEFAULT_PARAMS, type EngineInfo, type JobParams } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ export function CreateJob({ onCreated }: { onCreated?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [engines, setEngines] = useState<EngineInfo[]>([]);
+  const [showMore, setShowMore] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -88,11 +89,11 @@ export function CreateJob({ onCreated }: { onCreated?: () => void }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent" />
-          New clipping job
+          Make clips from a video
         </CardTitle>
         <CardDescription>
-          Drop a long video or paste a YouTube link — Pro Clipper transcribes it, finds the most
-          viral moments, and renders ready-to-post vertical clips with captions.
+          Add a long video. You get back short clips of its best moments, with captions, ready to
+          download.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -172,10 +173,10 @@ export function CreateJob({ onCreated }: { onCreated?: () => void }) {
           </div>
         )}
 
-        {/* Settings */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {/* Basics */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <Label>Language</Label>
+            <Label>Spoken language</Label>
             <Select value={params.language} onChange={(e) => set("language", e.target.value)}>
               {LANGUAGES.map(([code, name]) => (
                 <option key={code} value={code}>
@@ -185,19 +186,7 @@ export function CreateJob({ onCreated }: { onCreated?: () => void }) {
             </Select>
           </div>
           <div>
-            <Label>Engine</Label>
-            <Select value={params.engine} onChange={(e) => set("engine", e.target.value)}>
-              <option value="auto">Auto (best available)</option>
-              {engines.map((e) => (
-                <option key={e.id} value={e.id} disabled={!e.available}>
-                  {e.name}
-                  {!e.available ? " — unavailable" : ""}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label>Clips</Label>
+            <Label>How many clips</Label>
             <Input
               type="number"
               min={1}
@@ -207,52 +196,81 @@ export function CreateJob({ onCreated }: { onCreated?: () => void }) {
             />
           </div>
           <div>
-            <Label>Format</Label>
+            <Label>Shape</Label>
             <Select
               value={params.aspect}
               onChange={(e) => set("aspect", e.target.value as JobParams["aspect"])}
             >
-              <option value="9:16">Vertical 9:16 (Shorts/Reels)</option>
-              <option value="16:9">Horizontal 16:9</option>
-              <option value="1:1">Square 1:1</option>
+              <option value="9:16">Vertical — Shorts, Reels, TikTok</option>
+              <option value="16:9">Wide — YouTube</option>
+              <option value="1:1">Square — feed posts</option>
             </Select>
-          </div>
-          <div>
-            <Label>Min duration (s)</Label>
-            <Input
-              type="number"
-              min={3}
-              value={params.min_duration}
-              onChange={(e) => set("min_duration", Number(e.target.value) || 15)}
-            />
-          </div>
-          <div>
-            <Label>Max duration (s)</Label>
-            <Input
-              type="number"
-              min={5}
-              value={params.max_duration}
-              onChange={(e) => set("max_duration", Number(e.target.value) || 60)}
-            />
-          </div>
-          <div className="col-span-2 flex flex-wrap items-end gap-x-5 gap-y-3 pb-1">
-            <Switch checked={params.burn_subtitles} onChange={(v) => set("burn_subtitles", v)} label="Burn captions" />
-            <Switch checked={params.ken_burns} onChange={(v) => set("ken_burns", v)} label="Ken Burns zoom" />
-            <Switch checked={params.remove_silence} onChange={(v) => set("remove_silence", v)} label="Trim silence" />
           </div>
         </div>
 
-        {/* Engine availability strip */}
-        {engines.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-            <span className="mr-1 font-semibold">Engines:</span>
-            {engines.map((e) => (
-              <Badge key={e.id} tone={e.available ? "success" : "muted"} title={e.detail}>
-                {e.name.split(" (")[0]}
-              </Badge>
-            ))}
-          </div>
-        )}
+        {/* Advanced */}
+        <div>
+          <button
+            type="button"
+            aria-expanded={showMore}
+            onClick={() => setShowMore((v) => !v)}
+            className="flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-muted transition hover:text-foreground"
+          >
+            <ChevronDown className={cn("h-4 w-4 transition-transform", showMore && "rotate-180")} />
+            More options
+          </button>
+          {showMore && (
+            <div className="mt-4 space-y-4 rounded-xl border border-border bg-surface-2/50 p-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <Label>Shortest clip (seconds)</Label>
+                  <Input
+                    type="number"
+                    min={3}
+                    value={params.min_duration}
+                    onChange={(e) => set("min_duration", Number(e.target.value) || 15)}
+                  />
+                </div>
+                <div>
+                  <Label>Longest clip (seconds)</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    value={params.max_duration}
+                    onChange={(e) => set("max_duration", Number(e.target.value) || 60)}
+                  />
+                </div>
+                <div>
+                  <Label>Transcription engine</Label>
+                  <Select value={params.engine} onChange={(e) => set("engine", e.target.value)}>
+                    <option value="auto">Automatic (recommended)</option>
+                    {engines.map((e) => (
+                      <option key={e.id} value={e.id} disabled={!e.available}>
+                        {e.name}
+                        {!e.available ? " — not set up" : ""}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-3">
+                <Switch checked={params.burn_subtitles} onChange={(v) => set("burn_subtitles", v)} label="Captions on the video" />
+                <Switch checked={params.ken_burns} onChange={(v) => set("ken_burns", v)} label="Slow zoom" />
+                <Switch checked={params.remove_silence} onChange={(v) => set("remove_silence", v)} label="Cut out silences" />
+              </div>
+              {engines.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                  <span className="mr-1 font-semibold">Engines available:</span>
+                  {engines.map((e) => (
+                    <Badge key={e.id} tone={e.available ? "success" : "muted"} title={e.detail}>
+                      {e.name.split(" (")[0]}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {error && (
           <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">
@@ -262,7 +280,7 @@ export function CreateJob({ onCreated }: { onCreated?: () => void }) {
 
         <Button size="lg" className="w-full" disabled={!ready || busy} onClick={submit}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {busy ? "Starting…" : "Generate clips"}
+          {busy ? "Starting…" : ready ? "Generate clips" : tab === "link" ? "Paste a link to start" : "Choose a video to start"}
         </Button>
       </CardContent>
     </Card>
