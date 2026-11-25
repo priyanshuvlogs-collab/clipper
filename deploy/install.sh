@@ -76,13 +76,13 @@ ENV
 fi
 
 say "5/6 Checking that $DOMAIN points at this server"
-MY_IP="$(curl -4 -fsS --max-time 8 https://api.ipify.org || true)"
+MY_IP="$(curl -4 -fsS --max-time 8 https://api.ipify.org 2>/dev/null || true)"
 DNS_IP="$(getent ahostsv4 "$DOMAIN" | awk 'NR==1{print $1}' || true)"
 if [ -n "$MY_IP" ] && [ "$MY_IP" = "$DNS_IP" ]; then
   echo "OK: $DOMAIN -> $MY_IP"
 else
-  echo "WARNING: $DOMAIN currently points to '${DNS_IP:-nothing}', but this server is ${MY_IP:-unknown}."
-  echo "In your DNS zone, set A records for @ and www to ${MY_IP:-this server's IP}."
+  echo "WARNING: $DOMAIN currently points to ${DNS_IP:-nothing}, but this server is ${MY_IP:-unknown}."
+  echo "In your DNS zone, set the A records for @ and www to the IP of this server."
   echo "The app will start anyway; HTTPS begins working a few minutes after DNS is correct."
 fi
 
