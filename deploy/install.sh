@@ -10,7 +10,7 @@ set -euo pipefail
 REPO_URL="https://github.com/priyanshuvlogs-collab/clipper.git"
 BRANCH="${BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/clipper}"
-DOMAIN="${DOMAIN:-clipforge.com}"
+DOMAIN="${DOMAIN:-clipforge.in}"
 APP_USER="${APP_USER:-admin}"
 
 say() { printf '\n\033[1;35m==> %s\033[0m\n' "$*"; }
